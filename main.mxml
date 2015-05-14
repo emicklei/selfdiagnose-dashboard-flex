@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="800" height="600"
+	xmlns:philemon="com.philemonworks.flex.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:views="views.*"
+	creationComplete="init()" backgroundGradientColors="[#800080, #ff9595]">
+
+	<flexlib:SuperTabNavigator id="navigator" scrollSpeed="25" dropShadowEnabled="true" 
+			stopScrollingEvent="{MouseEvent.MOUSE_UP}" 
+			startScrollingEvent="{MouseEvent.MOUSE_DOWN}"
+			height="580" horizontalGap="0" width="780" x="10" y="10">
+
+		<views:ProvidersView label="SelfDiagnose Providers"
+					id="providersView" width="100%" height="100%" 
+					run="doRunProvider(event.provider)" 
+					edit="doEditProvider(event.provider)"
+					copy="doCopyProvider(event.provider)"
+					destroy="doDeleteProvider(event.provider)"/>							
+
+	</flexlib:SuperTabNavigator>
+
+
+
+
+	<mx:Script>
+		<![CDATA[
+			import com.philemonworks.selfdiagnose.dashboard.rest.RemoteProviderService;
+			import com.philemonworks.flex.SelfDiagnoseView;
+			import mx.rpc.events.ResultEvent;
+			import com.philemonworks.flex.RestClient;
+			import events.ProviderEvent;
+			import valueObjects.SelfDiagnoseProvider;
+			import views.ProviderEditWindow;
+			import views.ProviderForm;
+			import mx.managers.PopUpManager;
+			import mx.controls.Alert;
+			import com.philemonworks.flex.LoginWindow;
+				
+				private var providersURL:String = "http://localhost:8080/selfdiagnose-dashboard/services/providers"
+				private var commandURL:String = "http://localhost:8080/selfdiagnose-dashboard/services/providers/command"
+				
+				public function init():void {
+					this.doLogin();
+				}
+				public function doShowOverview():void {
+					providersView.update();					
+				}
+				
+				public function doRunProvider(provider:SelfDiagnoseProvider):void {
+					var view:SelfDiagnoseView  = new SelfDiagnoseView()
+					view.label = "Report: " + provider.name
+					navigator.addChild(view)
+					view.goto(provider.url+"?format=xml");
+					navigator.selectedChild = view
+				}	
+				public function doEditProvider(provider:SelfDiagnoseProvider):void {
+					ProviderEditWindow.edit(navigator,provider,doSaveProvider);
+				}
+				public function doCopyProvider(provider:SelfDiagnoseProvider):void {
+					var client:RestClient = new RestClient()
+					var runProvider:XML = 
+						<command name="copy">
+							<parameter name="id" value={provider.id} />
+						</command>
+					client.send_post(runProvider,commandURL, postReplyReceived)
+				}
+				public function doDeleteProvider(provider:SelfDiagnoseProvider):void {
+					var client:RestClient = new RestClient()
+					var deleteProvider:XML = 
+						<command name="delete">
+							<parameter name="id" value={provider.id} />
+						</command>
+					client.send_post(deleteProvider,commandURL, postReplyReceived)
+				}				
+				public function doSaveProvider(provider:SelfDiagnoseProvider):void {		
+					new RemoteProviderService().save(provider.toXML(),postReplyReceived)
+				}
+				private function postReplyReceived(event:ResultEvent):void {
+					providersView.update();
+				}
+				public function doLogin():void {
+					LoginWindow.popup(this,doLoginFinished);					
+				}			
+				public function doLoginFinished(login:LoginWindow):void {
+					if (login.accepted) {
+						this.doShowOverview();
+					} else {
+						Alert.show("login aborted");
+					}
+				}
+		]]>
+	</mx:Script>
+	
+</mx:Application>

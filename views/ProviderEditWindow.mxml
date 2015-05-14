@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="536" height="296"
+		title="Edit" 
+	showCloseButton="true"
+	xmlns:views="views.*">
+	<views:ProviderForm id="form" accept="doAccept(event)" cancel="doCancel(event)" />
+	
+	<mx:Script>
+		<![CDATA[
+			import valueObjects.SelfDiagnoseProvider;
+			import mx.managers.PopUpManager;
+
+			private var provider:SelfDiagnoseProvider;
+			private var callback:Function;
+			
+			public static function edit(parent:DisplayObject,editProvider:SelfDiagnoseProvider, acceptCallback:Function):void {
+				var popup:ProviderEditWindow = PopUpManager.createPopUp(parent,ProviderEditWindow,true) as ProviderEditWindow
+				popup.init(editProvider,acceptCallback);
+				PopUpManager.centerPopUp(popup);
+				popup.addEventListener("close", popup.doCancel);
+			}
+			public function init(editProvider:SelfDiagnoseProvider,acceptCallback:Function):void {
+				provider = editProvider
+				callback = acceptCallback
+				form.objectToForm(provider);
+			}			
+			public function doAccept(event:Event):void {
+				PopUpManager.removePopUp(this);
+				form.formToObject(provider);
+				callback.call(this,provider);
+			}
+			public function doCancel(event:Event):void {
+				PopUpManager.removePopUp(this);
+			}
+		]]>
+	</mx:Script>
+</mx:TitleWindow>

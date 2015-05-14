@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas
+	xmlns:philemon="com.philemonworks.flex.*" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" width="400" height="464">
+	
+	<mx:Metadata>
+			[Event(name="run",type="events.ProviderEvent")]
+			[Event(name="edit",type="events.ProviderEvent")]
+			[Event(name="copy",type="events.ProviderEvent")]
+			[Event(name="destroy",type="events.ProviderEvent")]
+	</mx:Metadata>
+	
+	<!-- these must match with event names -->
+	<mx:XMLList id="actions">
+		<node label="Run" type="run" />
+		<node label="Copy" type="copy"  />
+		<node label="Edit" type="edit" />
+		<node label="Delete" type="destroy" />
+	</mx:XMLList>
+	
+	<mx:Button x="10" y="10" label="New..." click="doNewProvider(event)" />
+	<mx:Button x="80" y="10" label="Clip" click="doClipSelectedProviders(event)" />
+	<mx:Button x="134" y="10" label="Create Group" click="doCreateGroup(event)" />
+	
+	<mx:DataGrid id="providerGrid" x="0" y="40" width="100%" height="424" dataProvider="{dataProvider}"
+		allowMultipleSelection="true" >
+		<mx:columns>
+			<mx:DataGridColumn headerText="Name" dataField="name"/>
+			<mx:DataGridColumn headerText="Category" dataField="category"/>
+			<mx:DataGridColumn headerText="Env." dataField="environment" width="50" />
+			<mx:DataGridColumn headerText="URL" dataField="url"/>
+			<mx:DataGridColumn headerText="Actions" width="100" >
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox paddingLeft="10">
+						<mx:PopUpMenuButton
+							itemClick="parentDocument.doProviderAction(event)" 							
+							labelField="@label" 
+							dataProvider="{parentDocument.actions}"
+							borderColor="white">
+						</mx:PopUpMenuButton>	
+						</mx:HBox>
+
+					</mx:Component>					
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</mx:columns>
+	</mx:DataGrid>
+	
+	<mx:Script>
+		<![CDATA[
+			import valueObjects.SelfDiagnoseProvider;
+			import mx.controls.DataGrid;
+			import events.ProviderEvent;
+			import mx.events.MenuEvent;
+			import mx.controls.Alert;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import com.philemonworks.flex.RestClient;
+			
+
+
+			[Bindable]
+			public var dataProvider:ArrayCollection = new ArrayCollection();
+			
+			public var restClient:RestClient = new RestClient();
+			
+			public function update():void {
+				restClient.send_get("http://localhost:8080/selfdiagnose-dashboard/services/providers", providersReceived);
+			}
+			
+			public function providersReceived(event:ResultEvent):void {
+				// TODO check if empty
+				if (event.result == null) return
+				dataProvider = event.result.providers.provider;
+			}
+			
+			public function doProviderAction(event:MenuEvent):void {
+				var type:String = actions[event.index].@type
+				this.dispatchEvent(new ProviderEvent(new SelfDiagnoseProvider(providerGrid.selectedItem),type))
+			}
+			
+			public function doNewProvider(event:Event):void {
+				this.dispatchEvent(new ProviderEvent(new SelfDiagnoseProvider(), "edit"))
+			}
+			public function doCreateGroup(event:Event):void {}
+			public function doClipSelectedProviders(event:Event):void {}						
+		]]>
+	</mx:Script>
+
+
+	
+</mx:Canvas>
